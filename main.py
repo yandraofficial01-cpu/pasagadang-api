@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
-from routers import properties, blogs, estetikas, materials, gudangs, inquiries
+# FIX UTAMA BRO! File lu namanya blog.py (singular) bukan blogs.py!
+from routers import properties, blog as blogs, estetikas, materials, gudangs, inquiries
 
 # Bikin tabel otomatis kalo belum ada (aman, gak ngerusak data TiDB lu)
 # Base.metadata.create_all(bind=engine)  # MATIKAN AJA BRO, SOALNYA LU UDAH BIKIN MANUAL DI TIDB - LEBIH AMAN
@@ -24,7 +25,7 @@ app.add_middleware(
 
 # DAFTARIN 6 ROUTER - SEKARANG UDAH LENGKAP!
 app.include_router(properties.router)
-app.include_router(blogs.router)
+app.include_router(blogs.router) # ini aslinya dari blog.py - gua alias jadi blogs biar konsisten!
 app.include_router(estetikas.router)
 app.include_router(materials.router)
 app.include_router(gudangs.router)
