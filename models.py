@@ -113,3 +113,58 @@ class Blog(Base):
         slug = judul.lower()
         slug = re.sub(r'[^a-z0-9]+', '-', slug)
         return slug.strip('-')
+
+# ================== TABEL BARU BRO - FINAL SULTAN ==================
+class Property(Base):
+    __tablename__ = "properties"
+
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    judul = Column(String(200), nullable=False)
+    slug = Column(String(250), unique=True, nullable=False, index=True)
+    tipe_properti = Column(String(50), nullable=False, index=True) # rumah, tanah, ruko, gudang, kos, apartemen
+    tipe_transaksi = Column(String(20), nullable=False, default='jual', index=True) # jual, sewa
+
+    # HARGA CASH & KREDIT - FITUR BARU!
+    harga_cash = Column(BigInteger, nullable=False, default=0)
+    harga_kredit = Column(BigInteger, nullable=True)
+    dp = Column(BigInteger, nullable=True) # DP minimal
+    cicilan_per_bulan = Column(BigInteger, nullable=True)
+    tenor_bulan = Column(Integer, nullable=True) # 120 bulan = 10 tahun
+    harga_sewa_per = Column(String(20), nullable=True) # bulan, tahun
+
+    alamat = Column(Text, nullable=True)
+    kecamatan = Column(String(50), nullable=True, index=True)
+    luas_tanah = Column(Integer, default=0)
+    luas_bangunan = Column(Integer, default=0)
+    kamar_tidur = Column(Integer, default=0)
+    kamar_mandi = Column(Integer, default=0)
+    sertifikat = Column(String(20), default='SHM')
+    
+    # MEDIA 8 FOTO + VIDEO
+    thumbnail = Column(Text, nullable=True)
+    foto_1 = Column(Text, nullable=True)
+    foto_2 = Column(Text, nullable=True)
+    foto_3 = Column(Text, nullable=True)
+    foto_4 = Column(Text, nullable=True)
+    foto_5 = Column(Text, nullable=True)
+    foto_6 = Column(Text, nullable=True)
+    foto_7 = Column(Text, nullable=True)
+    foto_8 = Column(Text, nullable=True)
+    video_url = Column(Text, nullable=True) # youtube / tiktok
+    video_thumbnail = Column(Text, nullable=True)
+
+    deskripsi = Column(Text, nullable=True) # LONGTEXT di TiDB
+    fasilitas = Column(Text, nullable=True) # AC, Carport, PDAM, 2200W
+    wa_number = Column(String(20), nullable=True)
+    badge = Column(String(20), nullable=True) # BARU, PROMO, TERJUAL
+    views = Column(Integer, default=0)
+    is_published = Column(Boolean, default=False, index=True)
+    
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    @staticmethod
+    def generate_slug(judul: str):
+        slug = judul.lower()
+        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+        return slug.strip('-')
