@@ -51,3 +51,39 @@ class Estetika(Base):
         slug = nama.lower()
         slug = re.sub(r'[^a-z0-9]+', '-', slug)
         return slug.strip('-')
+
+class Material(Base):
+    __tablename__ = "materials"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    nama = Column(String(150), nullable=False)
+    kategori = Column(String(50), nullable=False, index=True) # semen, besi, bata, pasir, kayu
+    slug = Column(String(200), unique=True, nullable=False, index=True)
+    brand = Column(String(100), nullable=True, index=True) # Semen Padang, Krakatau Steel
+    
+    # 3 Foto aja, gak perlu foto jadi
+    foto_1 = Column(Text, nullable=True)
+    foto_2 = Column(Text, nullable=True)
+    foto_3 = Column(Text, nullable=True)
+    
+    spesifikasi = Column(Text, nullable=True)
+    ukuran = Column(String(50), nullable=True)
+    harga = Column(Integer, nullable=False, default=0)
+    satuan = Column(String(30), nullable=False, default='pcs') # BEBAS: sak, batang, buah, m3, truk, lembar, kg, liter
+    stok_minimum = Column(Integer, default=10)
+    wa_number = Column(String(20), nullable=True)
+    deskripsi = Column(Text, nullable=True)
+    
+    # Badge Promo
+    badge = Column(String(20), nullable=True, index=True) # PROMO, BEST SELLER, BARU
+    harga_promo = Column(Integer, nullable=True)
+    promo_sampai = Column(TIMESTAMP, nullable=True)
+    
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    @staticmethod
+    def generate_slug(nama: str):
+        slug = nama.lower()
+        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+        return slug.strip('-')
