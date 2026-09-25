@@ -168,3 +168,20 @@ class Property(Base):
         slug = judul.lower()
         slug = re.sub(r'[^a-z0-9]+', '-', slug)
         return slug.strip('-')
+
+# ================== INQUIRIES - 10 KOLOM FINAL SULTAN ==================
+class Inquiry(Base):
+    __tablename__ = "inquiries"
+
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    property_id = Column(BigInteger, nullable=True, index=True)
+    property_slug = Column(String(255), nullable=True, index=True)
+    nama = Column(String(100), nullable=False)
+    whatsapp = Column(String(20), nullable=False)
+    pesan = Column(Text, nullable=False)
+    sumber = Column(String(20), default='website')
+    status = Column(String(20), default='new', index=True) # new, contacted, closing, sold, batal
+    
+    # WAKTU REAL - TIIDB AUTO ISI!
+    created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
