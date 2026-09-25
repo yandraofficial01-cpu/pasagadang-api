@@ -1,55 +1,52 @@
-import os
-from datetime import datetime
-from fastapi import FastAPI, Depends, APIRouter
-from fastapi.middleware.cors import CORSMiddleware 
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from database import engine, Base
+import models
+from routers import properties, blogs, estetikas, materials, gudangs
 
-from models import Base 
-from database import engine, get_db
-
-# IMPORT SEMUA ROUTER PUBLIC
-from routers import cars, rumah, ai_router, auth_router
-
-# IMPORT SEMUA ROUTER ADMIN
-from routers import admin_mobil, admin_rumah, admin_showroom, admin_blog
+# Bikin tabel otomatis kalo belum ada (aman, gak ngerusak data TiDB lu)
+# Base.metadata.create_all(bind=engine)  # MATIKAN AJA BRO, SOALNYA LU UDAH BIKIN MANUAL DI TIDB - LEBIH AMAN
 
 app = FastAPI(
-    title="Otopadang API",
-    description="API untuk Otopadang - Mobil, Rumah, Blog, AI",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    title="PASAGADANG API - FINAL SULTAN",
+    description="API Properti, Blog, Estetika, Material, Gudang - 37 Kolom Properties + Video + Kredit",
+    version="2.0.0"
 )
 
-app.router.redirect_slashes = False 
-
+# CORS - Biar bisa diakses dari Next.js / Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",            
-        "https://otopadang.com",             
-        "https://www.otopadang.com",         
-        "https://otopadang-frontend.vercel.app", # DOMAIN FE LU YG ASLI
-        "https://*.vercel.app" # BUAT PREVIEW DEPLOY
-    ],
-    allow_credentials=True, # WAJIB BUAT COOKIE CROSS DOMAIN
-    allow_methods=["*"], 
+    allow_origins=["*"], # nanti ganti ke domain lu: ["https://pasagadang.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ========== DAFTAR ROUTER PUBLIC ==========
-app.include_router(auth_router.router, tags=["Auth"]) 
-app.include_router(cars.router, prefix="/cars", tags=["Cars Public"])
-app.include_router(rumah.router, tags=["Rumah Public"]) 
-app.include_router(ai_router.router, prefix="/ai", tags=["AI"])
-
-# ========== DAFTAR ROUTER ADMIN - PREFIX DIHAPUS SEMUA ==========
-app.include_router(admin_showroom.router, tags=["Admin Showroom"])  
-app.include_router(admin_mobil.router, tags=["Admin Mobil"])        
-app.include_router(admin_rumah.router, tags=["Admin Rumah"]) 
-app.include_router(admin_blog.router, tags=["Admin Blog"])  
+# DAFTARIN 5 ROUTER
+app.include_router(properties.router)
+app.include_router(blogs.router)
+app.include_router(estetikas.router)
+app.include_router(materials.router)
+app.include_router(gudangs.router)
 
 @app.get("/")
-def read_root():
-    return {"status": "ok", "message": "Otopadang API is running"}
+def root():
+    return {
+        "message": "PASAGADANG API JALAN BRO! 🔥",
+        "version": "2.0.0",
+        "tables": ["properties (37 kolom)", "blogs", "estetikas", "materials", "gudangs"],
+        "endpoints": [
+            "/properties - Properti Sultan 8 Foto + Video + Kredit",
+            "/blogs - Tips & Inspirasi",
+            "/estetikas - Roster & Granit",
+            "/materials - Semen, Besi, dll",
+            "/gudangs - Data Gudang Mitra"
+        ],
+        "docs": "/docs"
+    }
+
+@app.get("/health")
+def health_check():
+    return {"status": "OK", "database": "TiDB Connected"}
+
+# JALANIN PAKE: uvicorn main:app --reload --port 8000
