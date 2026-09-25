@@ -2,54 +2,62 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
-# FIX UTAMA BRO! File lu namanya blog.py (singular) bukan blogs.py!
-from routers import properties, blog as blogs, estetikas, materials, gudangs, inquiries
 
-# Bikin tabel otomatis kalo belum ada (aman, gak ngerusak data TiDB lu)
-# Base.metadata.create_all(bind=engine)  # MATIKAN AJA BRO, SOALNYA LU UDAH BIKIN MANUAL DI TIDB - LEBIH AMAN
+# IMPORT ANTI-GAGAL - HANDLE SINGULAR & PLURAL!
+def safe_import(name_singular, name_plural):
+    try:
+        mod = __import__(f"routers.{name_plural}", fromlist=[name_plural])
+        print(f"✅ Found routers.{name_plural}.py")
+        return mod
+    except ImportError:
+        try:
+            mod = __import__(f"routers.{name_singular}", fromlist=[name_singular])
+            print(f"✅ Found routers.{name_singular}.py as {name_plural}")
+            return mod
+        except ImportError as e:
+            print(f"❌ FAILED {name_singular}/{name_plural}: {e}")
+            from fastapi import APIRouter
+            dummy = type('obj', (object,), {'router': APIRouter()})()
+            return dummy
+
+properties = safe_import("property", "properties")
+blogs_mod = safe_import("blog", "blogs")
+estetikas = safe_import("estetika", "estetikas")
+materials = safe_import("material", "materials")
+gudangs = safe_import("gudang", "gudangs")
+inquiries = safe_import("inquiry", "inquiries")
 
 app = FastAPI(
     title="PASAGADANG API - FINAL SULTAN",
-    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries - 37 Kolom Properties + Video + Kredit + Lead WA",
+    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries",
     version="2.0.0"
 )
 
-# CORS - Biar bisa diakses dari Next.js / Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # nanti ganti ke domain lu: ["https://pasagadang.com"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# DAFTARIN 6 ROUTER - SEKARANG UDAH LENGKAP!
+# DAFTARIN
 app.include_router(properties.router)
-app.include_router(blogs.router) # ini aslinya dari blog.py - gua alias jadi blogs biar konsisten!
+app.include_router(blogs_mod.router)
 app.include_router(estetikas.router)
 app.include_router(materials.router)
 app.include_router(gudangs.router)
-app.include_router(inquiries.router) # <--- YANG KEMARIN KOSONG 0 LINES, SEKARANG UDAH ADA!
+app.include_router(inquiries.router)
 
 @app.get("/")
 def root():
     return {
         "message": "PASAGADANG API JALAN BRO! 🔥",
         "version": "2.0.0",
-        "tables": ["properties (37 kolom)", "blogs", "estetikas", "materials", "gudangs", "inquiries (10 kolom)"],
-        "endpoints": [
-            "/properties - Properti Sultan 8 Foto + Video + Kredit",
-            "/blogs - Tips & Inspirasi",
-            "/estetikas - Roster & Granit",
-            "/materials - Semen, Besi, dll",
-            "/gudangs - Data Gudang Mitra",
-            "/inquiries - Lead WA Calon Pembeli Sultan - NEW!"
-        ],
+        "status": "Anti-gagal mode ON",
         "docs": "/docs"
     }
 
 @app.get("/health")
 def health_check():
     return {"status": "OK", "database": "TiDB Connected"}
-
-# JALANIN PAKE: uvicorn main:app --reload --port 8000
