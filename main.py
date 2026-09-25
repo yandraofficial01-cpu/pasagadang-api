@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
 
-# IMPORT ANTI-GAGAL - HANDLE SINGULAR & PLURAL!
 def safe_import(name_singular, name_plural):
     try:
         mod = __import__(f"routers.{name_plural}", fromlist=[name_plural])
@@ -20,6 +19,8 @@ def safe_import(name_singular, name_plural):
             dummy = type('obj', (object,), {'router': APIRouter()})()
             return dummy
 
+# TAMBAH AUTH DISINI BRO!
+auth_mod = safe_import("auth", "auth")
 properties = safe_import("property", "properties")
 blogs_mod = safe_import("blog", "blogs")
 estetikas = safe_import("estetika", "estetikas")
@@ -29,7 +30,7 @@ inquiries = safe_import("inquiry", "inquiries")
 
 app = FastAPI(
     title="PASAGADANG API - FINAL SULTAN",
-    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries",
+    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries, Auth",
     version="2.0.0"
 )
 
@@ -41,7 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DAFTARIN
+# DAFTARIN - JANGAN LUPA AUTH!
+app.include_router(auth_mod.router)
 app.include_router(properties.router)
 app.include_router(blogs_mod.router)
 app.include_router(estetikas.router)
