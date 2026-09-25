@@ -87,3 +87,29 @@ class Material(Base):
         slug = nama.lower()
         slug = re.sub(r'[^a-z0-9]+', '-', slug)
         return slug.strip('-')
+
+class Blog(Base):
+    __tablename__ = "blogs"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    judul = Column(String(200), nullable=False)
+    slug = Column(String(250), unique=True, nullable=False, index=True)
+    kategori = Column(String(50), nullable=False, index=True) # tips, inspirasi, promo, berita
+    thumbnail = Column(Text, nullable=True) # cover utama
+    excerpt = Column(String(300), nullable=True)
+    konten = Column(Text, nullable=False) # LONGTEXT - isi full, foto selipin di sini pake <img>
+    tags = Column(String(200), nullable=True)
+    author_name = Column(String(100), default='Admin Pasagadang')
+    meta_title = Column(String(200), nullable=True)
+    meta_description = Column(String(300), nullable=True)
+    views = Column(Integer, default=0)
+    is_published = Column(Boolean, default=False)
+    published_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    @staticmethod
+    def generate_slug(judul: str):
+        slug = judul.lower()
+        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+        return slug.strip('-')
