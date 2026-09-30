@@ -11,11 +11,11 @@ import cloudinary.uploader
 
 router = APIRouter(prefix="/blogs", tags=["Blogs"])
 
-# --- CONFIG CLOUDINARY (WAJIB ADA DI ENV VERCEL) ---
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
 )
 
 IKLAN_CONFIG = {
@@ -24,12 +24,9 @@ IKLAN_CONFIG = {
     "sidebar": {"kode_adsense": None, "gambar": "/ads/sidebar.jpg", "link": "/promo", "active": True}
 }
 
-# HAPUS os.makedirs, ganti dengan ini biar aman di Vercel
+# FIX VERCEL READ-ONLY - INI UDAH BENER
 UPLOAD_DIR = "/tmp/blogs"
-try:
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-except:
-    pass
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("", response_model=schemas.BlogResponse)
 def create_blog(payload: schemas.BlogCreate, db: Session = Depends(get_db)):
@@ -55,18 +52,21 @@ def create_blog(payload: schemas.BlogCreate, db: Session = Depends(get_db)):
 @router.post("/upload-image")
 def upload_gambar(file: UploadFile = File(...)):
     try:
-        # UPLOAD KE CLOUDINARY, BUKAN LOKAL LAGI
         result = cloudinary.uploader.upload(file.file, folder="pasagadang/blogs")
         return {"url": result["secure_url"]}
     except Exception as e:
-        # Fallback ke /tmp kalau cloudinary belum di set
-        ext = file.filename.split(".")[-1]
-        fname = f"{uuid.uuid4().hex}.{ext}"
-        path = os.path.join(UPLOAD_DIR, fname)
-        with open(path, "wb") as f:
-            f.write(file.file.read())
-        # kalau di vercel fallback ini gak akan bisa diakses permanen, makanya wajib cloudinary
-        raise HTTPException(status_code=500, detail=f"Cloudinary belum setting: {str(e)}")
+        # JANGAN RAISE kalau cloudinary belum set, kasih log aja
+        print(f"Cloudinary error: {e}")
+        # fallback darurat ke /tmp (di vercel ini hilang setelah request, jadi cuma buat debug)
+        try:
+            ext = file.filename.split(".")[-1]
+            fname = f"{uuid.uuid4().hex}.{ext}"
+            path = os.path.join(UPLOAD_DIR, fname)
+            with open(path, "wb") as f:
+                f.write(file.file.read())
+            return {"url": f"/tmp/blogs/{fname}", "warning": "cloudinary belum setting, file di /tmp"}
+        except Exception as ex:
+            raise HTTPException(status_code=500, detail=f"Upload gagal: {str(ex)}")
 
 @router.get("/", response_model=list[schemas.BlogResponse])
 def list_blogs(kategori: str = None, all: bool = False, db: Session = Depends(get_db)):
