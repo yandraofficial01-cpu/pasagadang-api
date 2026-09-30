@@ -6,8 +6,17 @@ from database import get_db
 import models, schemas
 import os, uuid, re
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
 
 router = APIRouter(prefix="/blogs", tags=["Blogs"])
+
+# --- CONFIG CLOUDINARY (WAJIB ADA DI ENV VERCEL) ---
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+)
 
 IKLAN_CONFIG = {
     "top": {"kode_adsense": None, "gambar": "/ads/rendang-promo.jpg", "link": "/promo", "active": True},
@@ -15,8 +24,12 @@ IKLAN_CONFIG = {
     "sidebar": {"kode_adsense": None, "gambar": "/ads/sidebar.jpg", "link": "/promo", "active": True}
 }
 
-UPLOAD_DIR = "static/blogs"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# HAPUS os.makedirs, ganti dengan ini biar aman di Vercel
+UPLOAD_DIR = "/tmp/blogs"
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except:
+    pass
 
 @router.post("", response_model=schemas.BlogResponse)
 def create_blog(payload: schemas.BlogCreate, db: Session = Depends(get_db)):
@@ -41,18 +54,22 @@ def create_blog(payload: schemas.BlogCreate, db: Session = Depends(get_db)):
 
 @router.post("/upload-image")
 def upload_gambar(file: UploadFile = File(...)):
-    ext = file.filename.split(".")[-1]
-    fname = f"{uuid.uuid4().hex}.{ext}"
-    path = os.path.join(UPLOAD_DIR, fname)
-    with open(path, "wb") as f:
-        f.write(file.file.read())
-    url = f"/{UPLOAD_DIR}/{fname}"
-    return {"url": url}
+    try:
+        # UPLOAD KE CLOUDINARY, BUKAN LOKAL LAGI
+        result = cloudinary.uploader.upload(file.file, folder="pasagadang/blogs")
+        return {"url": result["secure_url"]}
+    except Exception as e:
+        # Fallback ke /tmp kalau cloudinary belum di set
+        ext = file.filename.split(".")[-1]
+        fname = f"{uuid.uuid4().hex}.{ext}"
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as f:
+            f.write(file.file.read())
+        # kalau di vercel fallback ini gak akan bisa diakses permanen, makanya wajib cloudinary
+        raise HTTPException(status_code=500, detail=f"Cloudinary belum setting: {str(e)}")
 
-# --- FIX 1: BIKIN LIST ADMIN BISA LIHAT SEMUA ---
 @router.get("/", response_model=list[schemas.BlogResponse])
 def list_blogs(kategori: str = None, all: bool = False, db: Session = Depends(get_db)):
-    # kalau all=True (dari admin panel) tampilkan draft juga
     q = db.query(models.Blog)
     if not all:
         q = q.filter(models.Blog.is_published == True)
@@ -69,7 +86,6 @@ def sitemap(db: Session = Depends(get_db)):
     xml += "</urlset>"
     return Response(content=xml, media_type="application/xml")
 
-# --- FIX 2: TAMBAHIN PUT & DELETE BIAR TOMBOL EDIT/HAPUS JALAN ---
 @router.put("/{blog_id}", response_model=schemas.BlogResponse)
 def update_blog(blog_id: int, payload: schemas.BlogCreate, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == blog_id).first()
