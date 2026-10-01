@@ -18,7 +18,7 @@ class InquiryCreate(BaseModel):
     sumber: Optional[str] = "website"
 
 class InquiryUpdateStatus(BaseModel):
-    status: str # new, contacted, closing, sold, batal
+    status: str # new, contacted, closing, sold, batal, closed
 
 class InquiryResponse(BaseModel):
     id: int
@@ -59,7 +59,7 @@ def create_inquiry(data: InquiryCreate, db: Session = Depends(get_db)):
     db.refresh(new_inquiry)
     return new_inquiry
 
-# ===== GET ALL - BUAT ADMIN =====
+# ===== GET ALL - BUAT ADMIN PENGUNJUNG =====
 @router.get("/", response_model=List[InquiryResponse])
 def get_all_inquiries(
     status: Optional[str] = None,
@@ -69,7 +69,7 @@ def get_all_inquiries(
     db: Session = Depends(get_db)
 ):
     query = db.query(Inquiry).order_by(Inquiry.created_at.desc())
-    if status:
+    if status and status!= "semua":
         query = query.filter(Inquiry.status == status)
     if property_slug:
         query = query.filter(Inquiry.property_slug == property_slug)
@@ -84,20 +84,21 @@ def get_inquiry(inquiry_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Inquiry tidak ditemukan")
     return inquiry
 
-# ===== UPDATE STATUS - WA UDAH? CLOSING? SOLD? =====
+# ===== UPDATE STATUS - FIX BIAR SINKRON SAMA FE =====
 @router.patch("/{inquiry_id}", response_model=InquiryResponse)
 def update_status(inquiry_id: int, data: InquiryUpdateStatus, db: Session = Depends(get_db)):
     inquiry = db.query(Inquiry).filter(Inquiry.id == inquiry_id).first()
     if not inquiry:
         raise HTTPException(status_code=404, detail="Inquiry tidak ditemukan")
 
-    # Validasi status biar gak ngawur
-    allowed = ["new", "contacted", "closing", "sold", "batal"]
+    # FIX: tambahin "closed" biar FE gak 400
+    # FE: semua, new, contacted, closed
+    # BE: new, contacted, closing, sold, batal, closed
+    allowed = ["new", "contacted", "closing", "sold", "batal", "closed"]
     if data.status not in allowed:
         raise HTTPException(status_code=400, detail=f"Status harus salah satu: {', '.join(allowed)}")
 
     inquiry.status = data.status
-    # updated_at auto ke-update sama TiDB ON UPDATE CURRENT_TIMESTAMP!
     db.commit()
     db.refresh(inquiry)
     return inquiry
