@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
+from ai import generate_all_in_one  # <-- V3 BRAIN MASUK SINI BRO
 
 def safe_import(name_singular, name_plural):
     try:
@@ -29,9 +30,9 @@ gudangs = safe_import("gudang", "gudangs")
 inquiries = safe_import("inquiry", "inquiries")
 
 app = FastAPI(
-    title="PASAGADANG API - FINAL SULTAN",
-    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries, Auth",
-    version="2.0.0"
+    title="PASAGADANG API - FINAL SULTAN V3",
+    description="API Properti, Blog, Estetika, Material, Gudang, Inquiries, Auth + AI V3",
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -54,12 +55,36 @@ app.include_router(inquiries.router)
 @app.get("/")
 def root():
     return {
-        "message": "PASAGADANG API JALAN BRO! 🔥",
-        "version": "2.0.0",
-        "status": "Anti-gagal mode ON",
+        "message": "PASAGADANG API JALAN BRO! 🔥 V3",
+        "version": "3.0.0",
+        "status": "Anti-gagal + AI V3 ON",
         "docs": "/docs"
     }
 
 @app.get("/health")
 def health_check():
     return {"status": "OK", "database": "TiDB Connected"}
+
+# ================== AI V3 ENDPOINT - GAS BRO! ==================
+@app.post("/ai/generate-v3/")
+def gen_v3(nama: str, kategori: str, harga: int, tipe: str = "properti"):
+    """
+    V3 SUPER BRAIN - 1 KLIK JADI 4
+    tipe: properti / estetika / material
+    contoh: /ai/generate-v3/?nama=Roster Mawar&kategori=20x20&harga=25000&tipe=estetika
+    """
+    try:
+        hasil = generate_all_in_one(nama, kategori, harga, tipe, harga_pasaran=harga+10000)
+        return {"status": "sukses", "data": hasil}
+    except Exception as e:
+        return {"status": "gagal", "error": str(e)}
+
+@app.post("/ai/blog/")
+def gen_blog(topik: str):
+    """Generate artikel blog 600 kata otomatis"""
+    from ai import generate_blog_post
+    try:
+        artikel = generate_blog_post(topik)
+        return {"status": "sukses", "topik": topik, "artikel": artikel}
+    except Exception as e:
+        return {"status": "gagal", "error": str(e)}
