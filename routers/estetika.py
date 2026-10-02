@@ -16,8 +16,9 @@ def create_estetika(payload: schemas.EstetikaCreate, db: Session = Depends(get_d
     return new_item
 
 @router.get("/", response_model=list[schemas.EstetikaResponse])
-def list_estetika(kategori: str = None, db: Session = Depends(get_db)):
+def list_estetika(kategori: str = None, limit: int = 20, offset: int = 0, db: Session = Depends(get_db)):
     q = db.query(models.Estetika).filter(models.Estetika.is_active == True)
     if kategori:
         q = q.filter(models.Estetika.kategori == kategori)
-    return q.all()
+    
+    return q.order_by(models.Estetika.created_at.desc()).limit(limit).offset(offset).all()
