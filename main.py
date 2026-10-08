@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
 
+# Biar table auto ke-create di TiDB
+Base.metadata.create_all(bind=engine)
+
 def safe_import(name_singular, name_plural):
     try:
         mod = __import__(f"routers.{name_plural}", fromlist=[name_plural])
@@ -19,7 +22,7 @@ def safe_import(name_singular, name_plural):
             dummy = type('obj', (object,), {'router': APIRouter()})()
             return dummy
 
-# TAMBAH AUTH DISINI BRO!
+# LOAD SEMUA ROUTER
 auth_mod = safe_import("auth", "auth")
 properties = safe_import("property", "properties")
 blogs_mod = safe_import("blog", "blogs")
@@ -42,7 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DAFTARIN - JANGAN LUPA AUTH!
+# DAFTARIN ROUTER
 app.include_router(auth_mod.router)
 app.include_router(properties.router)
 app.include_router(blogs_mod.router)
@@ -60,6 +63,12 @@ def root():
         "docs": "/docs"
     }
 
+# === INI KUNCI ANTI TIDUR BRO ===
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
-    return {"status": "OK", "database": "TiDB Connected"}
+    return {"status": "OK", "database": "TiDB Connected", "service": "pasagadang-api"}
+
+@app.get("/api")
+def api_root():
+    return {"message": "PASAGADANG API JALAN BRO! 🔥", "health": "/api/health"}
